@@ -4,13 +4,14 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
-
-//var client_id = 'f7d9bdf5ca604d9cbdb868882b3bd4ab';
-//var client_secret = '29da3e52bb654acc8144a7ca143c1ed6';
-//var redirect_uri = 'http://localhost:3000/callback';
+var session = require('cookie-session');
+var passport = require('passport');
+var SpotifyStrategy = require('passport-spotify').Strategy
+require('dotenv').load();
 
 var routes = require('./routes/index');
 var users = require('./routes/users');
+var auth = require('./routes/auth');
 
 var app = express();
 
@@ -26,8 +27,21 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+passport.use(new SpotifyStrategy({
+    clientID: 'f7d9bdf5ca604d9cbdb868882b3bd4ab',
+    clientSecret: '29da3e52bb654acc8144a7ca143c1ed6',
+    callbackURL: 'http://localhost:3000/auth/spotify/callback'
+  },
+  function(accessToken, refreshToken, profile, done) {
+    User.findOrCreate({ spotifyId: profile.id }, function (err, user) {
+      return done(err, user);
+    });
+  }
+));
+
 app.use('/', routes);
 app.use('/users', users);
+app.use('/auth', auth);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
